@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://randomboxd:randomboxd@db:5432/randomboxd
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  db:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=randomboxd
+      - POSTGRES_PASSWORD=randomboxd
+      - POSTGRES_DB=randomboxd
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U randomboxd"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
