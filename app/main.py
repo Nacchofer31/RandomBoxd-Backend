@@ -33,6 +33,7 @@ app.add_middleware(
 )
 
 # Import and include routes
-from app.api.routes import health  # noqa: E402
+from app.api.routes import health, recommend  # noqa: E402
 
 app.include_router(health.router)
+app.include_router(recommend.router)

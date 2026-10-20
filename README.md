@@ -191,21 +191,30 @@ POST /api/v1/recommend
 
 ## Development Phases
 
-### ✅ Phase 1: Project Skeleton (Current)
+### ✅ Phase 1: Project Skeleton (Complete)
 - [x] Project structure
 - [x] FastAPI app with `/health`
 - [x] Docker + docker-compose
 - [x] Basic tests
 - [x] Configuration with pydantic-settings
 
-### 🚧 Phase 2: Deterministic Scoring Engine
+### ✅ Phase 2: Deterministic Scoring Engine (Complete)
+- [x] Pydantic models (MoodAnswers, Film, Recommendation)
+- [x] `/api/v1/recommend` endpoint
+- [x] Scoring based on era + genre affinity + energy/company weights
+- [x] Anti-hallucination: validate slug ∈ pool
+- [x] Tests with sample pools (22 tests)
+- [x] camelCase JSON API contract (matches mobile app)
+- [x] Deterministic scoring (same input = same output)
+
+### ⏳ Phase 3: LLM Integration (Next)
 - [ ] Pydantic models (MoodAnswers, Film, Recommendation)
 - [ ] `/api/v1/recommend` endpoint
 - [ ] Scoring based on era + genre affinity + energy/company weights
 - [ ] Anti-hallucination: validate slug ∈ pool
 - [ ] Tests with sample pools
 
-### ⏳ Phase 3: LLM Integration
+### ⏳ Phase 3: LLM Integration (Next)
 - [ ] LangChain + OpenAI structured output
 - [ ] `extract_preferences` node with LLM
 - [ ] `final_recommendation` node with LLM
