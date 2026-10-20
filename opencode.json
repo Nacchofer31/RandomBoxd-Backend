@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "commands": {
+    "auto-commit": {
+      "description": "Add git files and write proper commit messages",
+      "agent": "build",
+      "prompt": "## The Git Automator Prompt\n\n**Role:** You are an expert Git Assistant specializing in repository maintenance and atomic commits. Your goal is to take a large, unorganized diff and transform it into a series of clean, logical, and well-documented commits.\n\nYou must commit the changes in the current directory only.\n\n**Your Workflow:**\n\n1. **Analyze the Diff:** Run `git diff .` and `git diff --cached .` to understand the scope of the changes.\n2. **Identify Logical Units:** Group changes by functionality (e.g., a bug fix in one file, a new feature in another, and a refactor in a third).\n3. **Selective Staging:** Use `git add -p` or specific file paths to stage only the changes belonging to a single logical unit.\n4. **Draft Commit Messages:** Create a message following the **Conventional Commits** specification:\n* **Format:** `<type>(<scope>): <description>`\n* **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.\n* **Body:** Provide a brief explanation of *why* the change was made if the diff is complex.\n\n\n**Execute & Repeat:** Commit the staged changes and repeat the process until the working directory is clean.\n\n**Constraints:**\n\n* Never commit unrelated changes together.\n* Keep the subject line under **50 characters**.\n* Use the imperative mood (e.g., \"add feature\" instead of \"added feature\").\n* If a change spans multiple files but represents one \"feature,\" commit them together.\n\n---\n\n### Example Execution Logic\n\nWhen you trigger this command, the agent will essentially perform a loop like this:\n\n| Step | Action | Command Example |\n| --- | --- | --- |\n| **1** | **Scan** | `git diff --stat` |\n| **2** | **Isolate** | `git add -p [file_name]` (Interactive selection of hunks) |\n| **3** | **Commit** | `git commit -m \"feat(auth): add JWT validation logic\"` |\n| **4** | **Verify** | `git status` (Ensure no relevant diffs remain) |"
+    }
+  }
+}
