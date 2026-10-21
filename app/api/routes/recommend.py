@@ -19,6 +19,6 @@ async def recommend_movie(request: RecommendationRequest) -> RecommendationRespo
     try:
         return await movie_service.recommend(request)
     except EmptyPoolError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except NoMatchError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e

@@ -19,10 +19,10 @@ And returns **ONE validated recommendation** with structured, localizable output
 
 ## Tech Stack
 
-- **Language**: Python 3.12+
+- **Language**: Python 3.14+
 - **Framework**: FastAPI
 - **AI/Orchestration**: LangChain + LangGraph
-- **LLM**: OpenAI GPT-4o-mini (swappable to Ollama)
+- **LLM Providers**: OpenAI, Google Gemini, Anthropic Claude, OpenRouter, Ollama (local)
 - **Database**: PostgreSQL + pgvector
 - **ORM**: SQLAlchemy 2.0+ (async)
 - **Serialization**: Pydantic v2
@@ -66,9 +66,14 @@ randomboxd-backend/
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.14+
 - Docker & docker-compose
-- (Optional) OpenAI API key for LLM features
+- (Optional) API key for any LLM provider:
+  - OpenAI (`OPENAI_API_KEY`)
+  - Google Gemini (`GOOGLE_API_KEY`)
+  - Anthropic Claude (`ANTHROPIC_API_KEY`)
+  - OpenRouter (`OPENROUTER_API_KEY`)
+  - Ollama (local, no key needed)
 
 ### Installation
 
@@ -207,27 +212,16 @@ POST /api/v1/recommend
 - [x] camelCase JSON API contract (matches mobile app)
 - [x] Deterministic scoring (same input = same output)
 
-### ⏳ Phase 3: LLM Integration (Next)
-- [ ] Pydantic models (MoodAnswers, Film, Recommendation)
-- [ ] `/api/v1/recommend` endpoint
-- [ ] Scoring based on era + genre affinity + energy/company weights
-- [ ] Anti-hallucination: validate slug ∈ pool
-- [ ] Tests with sample pools
+### ✅ Phase 3: Multi-Provider LLM Integration (Complete)
+- [x] LLM client factory supporting 5 providers (OpenAI, Gemini, Claude, OpenRouter, Ollama)
+- [x] LangGraph workflow with 4 nodes (validate_pool, extract_preferences, score_movies, final_recommendation)
+- [x] Conditional routing with error handling
+- [x] Structured output support for LLM responses
+- [x] Deterministic fallback when LLM is unavailable
+- [x] Tests for LLM factory and workflow execution (9 new tests)
+- [x] All 33 tests passing
 
-### ⏳ Phase 3: LLM Integration (Next)
-- [ ] LangChain + OpenAI structured output
-- [ ] `extract_preferences` node with LLM
-- [ ] `final_recommendation` node with LLM
-- [ ] Fallback to deterministic engine on LLM failure
-- [ ] Tests with mocked LLM
-
-### ⏳ Phase 4: Complete LangGraph Workflow
-- [ ] Full graph with 4 nodes
-- [ ] Typed workflow state
-- [ ] End-to-end integration
-- [ ] Metrics (latency, pool_size, eligible_count)
-
-### ⏳ Phase 5: Pool Enrichment (Optional)
+### ⏳ Phase 4: Pool Enrichment (Optional)
 - [ ] Scrape genres/synopsis from Letterboxd
 - [ ] Store in PostgreSQL + pgvector
 - [ ] Semantic search for improved scoring
@@ -297,9 +291,17 @@ All configuration is via environment variables (see `.env.example`):
 | `APP_ENV` | `development` | Environment (development/production) |
 | `DEBUG` | `true` | Enable debug mode |
 | `DATABASE_URL` | `postgresql+asyncpg://...` | PostgreSQL connection string |
-| `OPENAI_API_KEY` | `""` | OpenAI API key (required for LLM features) |
-| `LLM_PROVIDER` | `openai` | LLM provider (openai/ollama) |
+| `LLM_PROVIDER` | `openai` | LLM provider (openai/gemini/claude/openrouter/ollama) |
+| `OPENAI_API_KEY` | `""` | OpenAI API key |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model to use |
+| `GOOGLE_API_KEY` | `""` | Google Gemini API key |
+| `GEMINI_MODEL` | `gemini-1.5-flash` | Gemini model to use |
+| `ANTHROPIC_API_KEY` | `""` | Anthropic Claude API key |
+| `CLAUDE_MODEL` | `claude-3-haiku-20240307` | Claude model to use |
+| `OPENROUTER_API_KEY` | `""` | OpenRouter API key |
+| `OPENROUTER_MODEL` | `anthropic/claude-3.5-sonnet` | OpenRouter model to use |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+| `OLLAMA_MODEL` | `llama3.1` | Ollama model to use |
 
 ## License
 

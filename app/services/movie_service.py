@@ -1,26 +1,20 @@
 """Movie recommendation service.
 
-Orchestrates the recommendation flow:
+Orchestrates the recommendation flow using LangGraph workflow:
 1. Validate pool
-2. Score films using deterministic engine
-3. Select best film
-4. Generate response with anti-hallucination validation
+2. Extract user preferences
+3. Score films
+4. Generate final recommendation with anti-hallucination validation
 """
 
 import time
 
-from app.core.scoring import (
-    build_reason_tags,
-    build_user_profile_summary,
-    get_reason_template_key,
-    score_films,
-)
 from app.models.schemas import (
-    RecommendationDetail,
     RecommendationMetadata,
     RecommendationRequest,
     RecommendationResponse,
 )
+from app.workflow.graph import recommendation_workflow
 
 
 class EmptyPoolError(Exception):
@@ -36,10 +30,13 @@ class NoMatchError(Exception):
 
 
 class MovieService:
-    """Service for generating movie recommendations."""
+    """Service for generating movie recommendations using LangGraph workflow."""
 
     async def recommend(self, request: RecommendationRequest) -> RecommendationResponse:
         """Generate a movie recommendation based on mood answers and pool.
+
+        Uses LangGraph workflow to orchestrate:
+        - validate_pool → extract_preferences → score_movies → final_recommendation
 
         Args:
             request: Complete recommendation request with mood answers and pool
@@ -53,71 +50,42 @@ class MovieService:
         """
         start_time = time.time()
 
-        # Validate pool
-        if not request.movie_pool:
-            raise EmptyPoolError("Movie pool is empty")
+        # Initialize workflow state
+        initial_state = {
+            "mood_answers": request.mood_answers,
+            "movie_pool": request.movie_pool,
+            "pool_context": request.pool_context,
+        }
 
-        pool_size = len(request.movie_pool)
+        # Execute workflow
+        final_state = await recommendation_workflow.ainvoke(initial_state)
 
-        # Extract pool genres from pool_context
-        pool_genres = set(request.pool_context.genres)
+        # Check for errors
+        if final_state.get("error"):
+            if "empty" in final_state["error"].lower():
+                raise EmptyPoolError(final_state["error"])
+            elif "no films match" in final_state["error"].lower():
+                raise NoMatchError(final_state["error"])
+            else:
+                raise ValueError(final_state["error"])
 
-        # Score films
-        scored_films = score_films(
-            pool=request.movie_pool,
-            answers=request.mood_answers,
-            pool_genres=pool_genres,
-        )
-
-        # Check if any films passed era filtering
-        if not scored_films:
-            raise NoMatchError(
-                f"No films match the era filter: {request.mood_answers.era}"
-            )
-
-        eligible_count = len(scored_films)
-
-        # Select best film (first in sorted list)
-        best_film, score = scored_films[0]
-
-        # Anti-hallucination validation: ensure film is in original pool
-        pool_slugs = {film.slug for film in request.movie_pool}
-        if best_film.slug not in pool_slugs:
-            # This should never happen with deterministic engine, but validate anyway
-            raise ValueError(
-                f"Selected film {best_film.slug} not found in original pool"
-            )
-
-        # Build response
-        reason_tags = build_reason_tags(request.mood_answers)
-        reason_template_key = get_reason_template_key(request.mood_answers.era)
-        user_profile_summary = build_user_profile_summary(request.mood_answers)
-
-        # Calculate confidence (normalized score)
-        # For now, use a simple heuristic: if score > 0, high confidence
-        # In Phase 3, LLM will provide more nuanced confidence
-        confidence = min(1.0, 0.7 + (score * 0.03))  # Base 0.7 + 0.03 per match
+        # Validate we have a recommendation
+        if not final_state.get("recommendation"):
+            raise ValueError("Workflow completed without generating a recommendation")
 
         latency_ms = int((time.time() - start_time) * 1000)
 
-        recommendation = RecommendationDetail(
-            film=best_film,
-            reason_tags=reason_tags,  # type: ignore[arg-type]
-            reason_template_key=reason_template_key,
-            confidence=confidence,
-            user_profile_summary=user_profile_summary,
-        )
-
+        # Build metadata
         metadata = RecommendationMetadata(
-            pool_size=pool_size,
-            eligible_count=eligible_count,
-            llm_model=None,  # Deterministic engine only
+            pool_size=len(request.movie_pool),
+            eligible_count=len(final_state.get("scored_films", [])),
+            llm_model=final_state.get("llm_model"),
             latency_ms=latency_ms,
         )
 
         return RecommendationResponse(
-            recommendation=recommendation,
-            fallback_used=True,  # Always true for deterministic engine
+            recommendation=final_state["recommendation"],
+            fallback_used=final_state.get("fallback_used", True),
             metadata=metadata,
         )
 

@@ -80,9 +80,7 @@ def era_matches(era: MoodEra, release_year: int | None) -> bool:
     min_year, max_year = ERA_RANGES[era]
     if min_year is not None and release_year < min_year:
         return False
-    if max_year is not None and release_year > max_year:
-        return False
-    return True
+    return not (max_year is not None and release_year > max_year)
 
 
 def compute_genre_affinity_score(

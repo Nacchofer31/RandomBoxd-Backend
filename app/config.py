@@ -24,9 +24,25 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://randomboxd:randomboxd@localhost:5432/randomboxd"
 
     # LLM / AI
+    llm_provider: str = "openai"  # openai | gemini | claude | openrouter | ollama
+
+    # OpenAI
     openai_api_key: str = ""
-    llm_provider: str = "openai"  # openai | ollama
     openai_model: str = "gpt-4o-mini"
+
+    # Google Gemini
+    google_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+
+    # Anthropic Claude
+    anthropic_api_key: str = ""
+    claude_model: str = "claude-3-haiku-20240307"
+
+    # OpenRouter (aggregator)
+    openrouter_api_key: str = ""
+    openrouter_model: str = "anthropic/claude-3.5-sonnet"
+
+    # Ollama (local)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"
 
