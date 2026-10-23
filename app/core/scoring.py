@@ -100,8 +100,12 @@ def score_films(
     pool: list[Film],
     answers: MoodAnswers,
     pool_genres: set[str],
+    film_genres: dict[str, list[str]] | None = None,
 ) -> list[tuple[Film, float]]:
     """Score all films in the pool based on mood answers.
+
+    If film_genres is provided (from enrichment), uses per-film genres for more
+    accurate scoring. Otherwise falls back to pool-level genres.
 
     Returns a list of (film, score) tuples sorted by:
     1. Score descending (best first)
@@ -114,14 +118,33 @@ def score_films(
     energy_affinity = ENERGY_GENRE_WEIGHTS.get(answers.energy, set())
     company_affinity = COMPANY_GENRE_WEIGHTS.get(answers.company, set())
 
-    energy_score = compute_genre_affinity_score(pool_genres, energy_affinity)
-    company_score = compute_genre_affinity_score(pool_genres, company_affinity)
-    base_score = energy_score + company_score
+    # Normalize requested genre for preference bonus
+    requested_genre: str | None = None
+    if answers.genre != "ANY":
+        requested_genre = answers.genre.replace("SPECIFIC_", "").lower()
 
     for film in pool:
         if not era_matches(answers.era, film.release_year):
             continue  # Hard gate: era filter
-        scored.append((film, base_score))
+
+        # Use per-film genres if available, otherwise fallback to pool-level
+        if film_genres and film.slug in film_genres:
+            effective_genres = set(film_genres[film.slug])
+        else:
+            effective_genres = pool_genres
+
+        # Energy affinity score (per-film or pool-level)
+        energy_score = compute_genre_affinity_score(effective_genres, energy_affinity)
+        # Company affinity score (per-film or pool-level)
+        company_score = compute_genre_affinity_score(effective_genres, company_affinity)
+
+        # Genre preference bonus: strong signal when film has the requested genre
+        genre_bonus = 0.0
+        if requested_genre and requested_genre in effective_genres:
+            genre_bonus = 2.0
+
+        total_score = energy_score + company_score + genre_bonus
+        scored.append((film, total_score))
 
     # Sort by (-score, slug) for deterministic ordering
     scored.sort(key=lambda x: (-x[1], x[0].slug))

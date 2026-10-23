@@ -38,17 +38,20 @@ randomboxd-backend/
 │   ├── api/
 │   │   ├── routes/
 │   │   │   ├── health.py          # Health check endpoint
-│   │   │   └── recommend.py       # Recommendation endpoint
+│   │   │   ├── recommend.py       # Recommendation endpoint
+│   │   │   └── enrich.py          # Pool enrichment endpoint (Phase 4)
 │   │   └── deps.py                # API dependencies
 │   ├── core/
 │   │   ├── database.py            # Async SQLAlchemy setup
 │   │   ├── llm.py                 # LLM client configuration
-│   │   └── scoring.py             # Deterministic scoring engine
+│   │   ├── scoring.py             # Deterministic scoring engine
+│   │   └── letterboxd_scraper.py  # Letterboxd scraper (Phase 4)
 │   ├── models/
 │   │   ├── schemas.py             # Pydantic models
-│   │   └── db_models.py           # SQLAlchemy models
+│   │   └── db_models.py           # SQLAlchemy models (includes FilmEnriched)
 │   ├── services/
-│   │   └── movie_service.py       # Business logic
+│   │   ├── movie_service.py       # Business logic
+│   │   └── enrichment_service.py  # Pool enrichment service (Phase 4)
 │   ├── workflow/
 │   │   ├── graph.py               # LangGraph workflow
 │   │   ├── nodes/                 # Workflow nodes
@@ -56,6 +59,10 @@ randomboxd-backend/
 │   ├── config.py                  # App configuration
 │   └── main.py                    # FastAPI app
 ├── tests/
+│   ├── test_health.py             # Health endpoint tests
+│   ├── test_recommend.py          # Recommendation tests (Phase 2)
+│   ├── test_phase3.py             # LLM integration tests (Phase 3)
+│   └── test_enrichment.py         # Enrichment tests (Phase 4)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml
@@ -194,6 +201,39 @@ POST /api/v1/recommend
 }
 ```
 
+### Enrich Pool (Phase 4)
+
+```http
+POST /api/v1/enrich
+```
+
+Pre-enriches a pool of films with per-film genres from Letterboxd. This is optional — the `/recommend` endpoint automatically enriches when the database is available, but this endpoint allows you to warm the cache beforehand for faster recommendation latency.
+
+**Request**:
+```json
+{
+  "slugs": ["inception-2010", "mad-max-fury-road-2015"]
+}
+```
+
+**Response**:
+```json
+{
+  "enriched_count": 2,
+  "total_count": 2,
+  "results": {
+    "inception-2010": ["action", "sci-fi", "thriller"],
+    "mad-max-fury-road-2015": ["action", "adventure", "sci-fi"]
+  }
+}
+```
+
+**Notes**:
+- Returns 503 if the database is unavailable (enrichment requires PostgreSQL)
+- Films already in cache are returned immediately without scraping
+- Only uncached films trigger Letterboxd scraping
+- Results are cached in the database for future recommendations
+
 ## Development Phases
 
 ### ✅ Phase 1: Project Skeleton (Complete)
@@ -221,12 +261,18 @@ POST /api/v1/recommend
 - [x] Tests for LLM factory and workflow execution (9 new tests)
 - [x] All 33 tests passing
 
-### ⏳ Phase 4: Pool Enrichment (Optional)
-- [ ] Scrape genres/synopsis from Letterboxd
-- [ ] Store in PostgreSQL + pgvector
-- [ ] Semantic search for improved scoring
+### ✅ Phase 4: Pool Enrichment (Complete)
+- [x] Letterboxd scraper for per-film genres
+- [x] PostgreSQL caching with FilmEnriched model
+- [x] Enrichment service with lazy enrichment
+- [x] Enhanced scoring using per-film genres when available
+- [x] `/api/v1/enrich` endpoint for pre-enrichment
+- [x] Automatic enrichment in `/api/v1/recommend` when DB is available
+- [x] Graceful degradation when DB is unavailable
+- [x] Tests for enrichment service, scraper, and endpoints (8 new tests)
+- [x] All 41 tests passing
 
-### ⏳ Phase 6: Mobile App Integration
+### ⏳ Phase 5: Mobile App Integration
 - [ ] Out of scope for backend (handled in mobile project)
 
 ## Testing

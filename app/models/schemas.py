@@ -124,6 +124,7 @@ class RecommendationMetadata(BaseSchema):
     eligible_count: int = Field(..., description="Films that passed era filtering")
     llm_model: str | None = Field(None, description="LLM model used (if LLM layer active)")
     latency_ms: int = Field(..., description="Total processing time in milliseconds")
+    enrichment_count: int = Field(0, description="Number of films enriched with per-film genres")
 
 
 class RecommendationResponse(BaseSchema):

@@ -33,6 +33,7 @@ class WorkflowState(BaseModel):
     validated_pool: list[Film] | None = None
     pool_stats: dict[str, Any] | None = None
     user_profile: UserProfile | None = None
+    enriched_genres: dict[str, list[str]] | None = None
     scored_films: list[tuple[Film, float]] | None = None
     llm_candidates: list[Film] | None = None
 
